@@ -1,0 +1,4 @@
+users:
+  # - {  user: zookeeper   , group: zookeeper }
+  # - {  user: kafka     , group: kafka }
+    - {  user: mzhou     , group: big }

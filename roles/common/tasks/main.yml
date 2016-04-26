@@ -1,0 +1,66 @@
+---
+# file: roles/common/tasks/main.yml
+
+- name: for debugging
+  debug: msg="{{item.0 + 1}} {{ item.1}}"
+  with_indexed_items: ansible_devices.keys()
+  when: item.1 != 'xvda1' and item.1 != 'xvda'
+  tags:
+    - debug
+
+- name: create the hosts file for all machines
+  template: src=hosts dest=/etc/hosts backup=yes
+  tags:
+    - update-hosts
+
+- name: umount /mnt
+  command: umount {{ item }}
+  ignore_errors: true
+  with_items:
+    - /mnt
+  tags:
+    - install-filesystem
+
+- name: Format disks
+  command: mkfs.ext4 /dev/{{ item }}
+  with_items: ansible_devices.keys()
+  when: item != 'xvda1' and item != 'xvda'
+  tags:
+    - install-filesystem
+
+- name: create root directory for disks
+  command: mkdir -p /disk{{item.0 + 1}}
+  with_indexed_items: ansible_devices.keys()
+  when: item.1 != 'xvda1' and item.1 != 'xvda'
+  tags:
+    - install-filesystem
+
+- name: Mount disks
+  mount: name=/disk{{ item.0 + 1 }} src=/dev/{{ item.1 }} fstype=ext4 opts=noatime,nodiratime state=mounted
+  with_indexed_items: ansible_devices.keys()
+  when: item.1 != 'xvda1' and item.1 != 'xvda'
+  tags:
+    - mount-filesystem
+    - install-filesystem
+
+- name: upload fstab
+  template: src=fstab.j2 dest=/etc/fstab owner=root group=root mode=0644
+  tags:
+    - update-filesystem-config
+    - install-filesystem
+
+- name: configure /etc/pam.d/common-session and /etc/pam.d/common-session-noninteractive with pam_limits.so
+  lineinfile: name={{ item }} regexp='pam_limits.so' line='session required pam_limits.so'
+  with_items:
+    - /etc/pam.d/common-session
+    - /etc/pam.d/common-session-noninteractive
+  tags:
+    - update-system-config
+
+- name: restart machine
+  command: reboot
+  async: 0
+  poll: 0
+  ignore_errors: true
+  tags:
+    - reboot-system

@@ -1,0 +1,11 @@
+- name: Ensure cdh system groups are present
+  group: name={{ item.group }} state=present
+  with_items: users
+  tags:
+    - create-system-user
+
+- name: Add user to cluster nodes
+  user: name={{ item.user }} groups={{ item.group }} state=present append=yes createhome=yes  shell=/bin/bash
+  with_items: users
+  tags:
+    - create-system-user

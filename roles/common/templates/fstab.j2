@@ -1,0 +1,7 @@
+LABEL=cloudimg-rootfs	/        ext4	defaults	0 0
+
+{% for device in ansible_devices.iterkeys() %}
+{% if device != 'xvda' and device != 'xvda1' %}
+/dev/{{ device}}   /disk{{ loop.index }}       ext4    noatime,nodiratime    0 0
+{% endif %}
+{% endfor %}
